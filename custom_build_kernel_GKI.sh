@@ -123,16 +123,19 @@ export PATH=${ANDROID_BUILD_TOP}/${CLANG_DIR}:$PATH
 # ─────────────────────────────────────────
 # 5. FIX GLIBC 2.39 — glibc_compat.o
 # ─────────────────────────────────────────
-if [ ! -f "${ANDROID_BUILD_TOP}/glibc_compat.o" ]; then
+FIX_DIR=${ANDROID_BUILD_TOP}/Fix
+mkdir -p "${FIX_DIR}"
+
+if [ ! -f "${FIX_DIR}/glibc_compat.o" ]; then
   echo "[fix] Compilation de glibc_compat.o..."
-  cat > ${ANDROID_BUILD_TOP}/glibc_compat.c << 'EOFC'
+  cat > ${FIX_DIR}/glibc_compat.c << 'EOFC'
 #include <stdlib.h>
 long __isoc23_strtol(const char *s, char **e, int b)             { return strtol(s,e,b); }
 unsigned long __isoc23_strtoul(const char *s, char **e, int b)   { return strtoul(s,e,b); }
 unsigned long long __isoc23_strtoull(const char *s, char **e, int b) { return strtoull(s,e,b); }
 EOFC
-  gcc -O2 -c ${ANDROID_BUILD_TOP}/glibc_compat.c \
-      -o ${ANDROID_BUILD_TOP}/glibc_compat.o
+  gcc -O2 -c ${FIX_DIR}/glibc_compat.c \
+      -o ${FIX_DIR}/glibc_compat.o
   echo "[fix] glibc_compat.o compilé ✅"
 fi
 
@@ -151,7 +154,7 @@ for arg in "\$@"; do
   if [[ "\$arg" == *libsubcmd* ]]; then
     exec -a "ld.lld" "\$(dirname "\$0")/ld.lld.real" \\
       --allow-multiple-definition \\
-      ${ANDROID_BUILD_TOP}/glibc_compat.o "\$@"
+      ${FIX_DIR}/glibc_compat.o "\$@"
   fi
 done
 exec -a "ld.lld" "\$(dirname "\$0")/ld.lld.real" "\$@"
@@ -185,7 +188,7 @@ strings ${DIST_DIR}/Image | grep -i "linux version" | head -1
 #   boot.img        → Odin (AP) — kernel principal
 #   Image.gz        → AnyKernel3 — kernel principal
 #
-# Clean :
+# Deep Clean :
 #   rm -rf ${OUT_DIR}/
 ################################################################################
 
