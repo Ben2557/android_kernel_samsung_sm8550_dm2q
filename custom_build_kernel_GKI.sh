@@ -123,7 +123,7 @@ export PATH=${ANDROID_BUILD_TOP}/${CLANG_DIR}:$PATH
 # ─────────────────────────────────────────
 # 5. FIX GLIBC 2.39 — glibc_compat.o
 # ─────────────────────────────────────────
-FIX_DIR=${ANDROID_BUILD_TOP}/Fix
+FIX_DIR=${ANDROID_BUILD_TOP}/fix
 mkdir -p "${FIX_DIR}"
 
 if [ ! -f "${FIX_DIR}/glibc_compat.o" ]; then
