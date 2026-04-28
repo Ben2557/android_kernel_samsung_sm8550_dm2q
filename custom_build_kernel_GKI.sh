@@ -178,6 +178,8 @@ echo "========================================="
 printf "\n\n\n"
 strings ${DIST_DIR}/Image | grep -i "linux version" | head -1
 
+# Compresse en format Odin (AP)
+tar -cvf ${MODEL}_KernelSU-Next-v3.2.0.tar ${DIST_DIR}/boot.img
 
 ################################################################################
 # Output files :
