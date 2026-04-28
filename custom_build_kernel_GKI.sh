@@ -172,6 +172,9 @@ echo "========================================="
 
 ( env ${GKI_KERNEL_BUILD_OPTIONS} ${ANDROID_BUILD_TOP}/kernel_platform/build/android/prepare_vendor.sh sec ${TARGET_PRODUCT} || exit 1) 2>&1 | tee build_log.log
 
+# Affiche le nom du kernel compilé
+strings ${DIST_DIR}/Image | grep -i "linux version" | head -1
+
 
 ################################################################################
 # Output files :
