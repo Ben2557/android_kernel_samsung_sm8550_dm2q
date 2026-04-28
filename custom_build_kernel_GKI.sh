@@ -32,6 +32,10 @@ export TARGET_PRODUCT=gki
 export TARGET_BOARD_PLATFORM=gki
 export ANDROID_PRODUCT_OUT=${ANDROID_BUILD_TOP}/out/target/product/${MODEL}
 export OUT_DIR=${ANDROID_BUILD_TOP}/out/msm-kernel-${CHIPSET_NAME}-${TARGET_PRODUCT}
+export DIST_DIR=${ANDROID_BUILD_TOP}/out/msm-kernel-${CHIPSET_NAME}-${TARGET_PRODUCT}/dist
+export MERGE_CONFIG="${ANDROID_BUILD_TOP}/kernel_platform/common/scripts/kconfig/merge_config.sh"
+
+mkdir -p "${DIST_DIR}"
 
 # ─────────────────────────────────────────
 # 3. MODULES VENDOR — symboles et chemins
@@ -61,13 +65,57 @@ export KBUILD_EXT_MODULES="\
 ../vendor/qcom/opensource/audio-kernel \
 ../vendor/qcom/opensource/camera-kernel"
 
+
+# Build Setting
+export GKI_KERNEL_BUILD_OPTIONS="
+    SKIP_MRPROPER=1 \
+    LTO=thin \
+    HERMETIC_TOOLCHAIN=0 \
+    KMI_SYMBOL_LIST_STRICT_MODE=0 \
+    RECOMPILE_KERNEL=1 \
+    ABI_DEFINITION= \
+    BUILD_BOOT_IMG=1 \
+    SKIP_VENDOR_BOOT=1 \
+    MKBOOTIMG_PATH=${ANDROID_BUILD_TOP}/kernel_platform/tools/mkbootimg/mkbootimg.py \
+    KERNEL_BINARY=Image \
+    BOOT_IMAGE_HEADER_VERSION=4 \
+    AVB_SIGN_BOOT_IMG=1 \
+    AVB_BOOT_PARTITION_SIZE=100663296 \
+    AVB_BOOT_KEY=${ANDROID_BUILD_TOP}/kernel_platform/tools/mkbootimg/gki/testdata/testkey_rsa4096.pem \
+    AVB_BOOT_ALGORITHM=SHA256_RSA4096 \
+    AVB_BOOT_PARTITION_NAME=boot"
+
+# SKIP_MRPROPER=1              → pas de clean complet, rebuild incrémental plus rapide
+# LTO=thin                     → link-time optimization allégé (moins de RAM, plus rapide que full)
+# HERMETIC_TOOLCHAIN=0         → autorise les outils host système (python, make…)
+# KMI_SYMBOL_LIST_STRICT_MODE=0→ désactive le blocage si un symbole n'est pas dans la liste KMI officielle
+# RECOMPILE_KERNEL=1           → force la recompilation du kernel même sans changement détecté
+# ABI_DEFINITION=              → désactive la vérification ABI (vide = désactivé)
+# BUILD_BOOT_IMG=1             → génère boot.img à la fin du build
+# SKIP_VENDOR_BOOT=1           → ne génère pas vendor_boot.img pendant le build principal
+# MKBOOTIMG_PATH               → chemin vers le script Python qui assemble le boot.img
+# KERNEL_BINARY=Image          → binaire kernel arm64 (pas zImage)
+# BOOT_IMAGE_HEADER_VERSION=4  → obligatoire pour Android 13+
+# AVB_SIGN_BOOT_IMG=1          → signe le boot.img avec Android Verified Boot
+# AVB_BOOT_PARTITION_SIZE      → taille de la partition boot en octets (96 Mo)
+# AVB_BOOT_KEY                 → clé RSA4096 pour la signature AVB (clé de test générique)
+# AVB_BOOT_ALGORITHM           → algorithme de signature AVB
+# AVB_BOOT_PARTITION_NAME=boot → nom de la partition cible
+
+
+# MKBOOTIMG Setting
+export MKBOOTIMG_EXTRA_ARGS="
+    --os_version 13.0.0 \
+    --pagesize 4096"
+
+
 # ─────────────────────────────────────────
 # 4. TOOLCHAIN DANS LE PATH
 # ─────────────────────────────────────────
 CLANG_DIR=kernel_platform/prebuilts/clang/host/linux-x86/clang-r450784e/bin
 export PATH=${ANDROID_BUILD_TOP}/${CLANG_DIR}:$PATH
-ROOT_DIR=/home/benjamin/Documents/Projets/SM-S916B/Kernel/5.15.78
-cd "${ROOT_DIR}"
+
+
 # ─────────────────────────────────────────
 # 5. FIX GLIBC 2.39 — glibc_compat.o
 # ─────────────────────────────────────────
@@ -111,8 +159,8 @@ echo "[fix] Wrapper ld.lld installé ✅"
 # ─────────────────────────────────────────
 # 7. NETTOYAGE resolve_btfids (cache cassé)
 # ─────────────────────────────────────────
-rm -rf out/msm-kernel-kalama-gki/gki_kernel/common/tools/bpf/resolve_btfids
-rm -rf out/msm-kernel-kalama-gki/msm-kernel/tools/bpf/resolve_btfids
+rm -rf ${OUT_DIR}/gki_kernel/common/tools/bpf/resolve_btfids
+rm -rf ${OUT_DIR}/msm-kernel/tools/bpf/resolve_btfids
 
 # ─────────────────────────────────────────
 # 8. LANCEMENT DU BUILD
@@ -122,14 +170,13 @@ echo "========================================="
 echo " Démarrage build kernel SM-S916B (dm2q)"
 echo "========================================="
 
-RECOMPILE_KERNEL=1 ./kernel_platform/build/android/prepare_vendor.sh sec ${TARGET_PRODUCT} 2>&1 | tee build_log.log
+( env ${GKI_KERNEL_BUILD_OPTIONS} ${ANDROID_BUILD_TOP}/kernel_platform/build/android/prepare_vendor.sh sec ${TARGET_PRODUCT} || exit 1) 2>&1 | tee build_log.log
+
 
 ################################################################################
 # Output files :
 #   boot.img        → Odin (AP) — kernel principal
-#   init_boot.img   → à patcher avec KSU Next Manager
-#   vendor_boot.img → NE PAS flasher
-#   dtbo.img        → NE PAS flasher
+#   Image.gz        → AnyKernel3 — kernel principal
 #
 # Clean :
 #   rm -rf out/msm-kernel-kalama-gki/
