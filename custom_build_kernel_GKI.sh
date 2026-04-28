@@ -4,14 +4,9 @@
 # Build script — Samsung Galaxy S23+ SM-S916B (dm2q / kalama)
 ################################################################################
 
-# ─────────────────────────────────────────
-# 1. RÉPERTOIRE RACINE
-# ─────────────────────────────────────────
-ROOT_DIR=/home/benjamin/Documents/Projets/SM-S916B/Kernel/5.15.78
-cd "${ROOT_DIR}"
 
 # ─────────────────────────────────────────
-# 2. VARIABLES CIBLES
+# 1. VARIABLES CIBLES
 # ─────────────────────────────────────────
 
 #1. target config
@@ -27,7 +22,7 @@ export TARGET_BUILD_VARIANT=user
 #2. sm8550 common config
 
 CHIPSET_NAME=kalama
-export ANDROID_BUILD_TOP="${ROOT_DIR}"
+export ANDROID_BUILD_TOP=$(pwd)
 export TARGET_PRODUCT=gki
 export TARGET_BOARD_PLATFORM=gki
 export ANDROID_PRODUCT_OUT=${ANDROID_BUILD_TOP}/out/target/product/${MODEL}
@@ -42,7 +37,7 @@ rm -rf ${OUT_DIR}/gki_kernel/dist
 
 
 # ─────────────────────────────────────────
-# 3. MODULES VENDOR — symboles et chemins
+# 2. MODULES VENDOR — symboles et chemins
 # ─────────────────────────────────────────
 
 # for Lcd(techpack) driver build
@@ -114,14 +109,14 @@ export MKBOOTIMG_EXTRA_ARGS="
 
 
 # ─────────────────────────────────────────
-# 4. TOOLCHAIN DANS LE PATH
+# 3. TOOLCHAIN DANS LE PATH
 # ─────────────────────────────────────────
 CLANG_DIR=kernel_platform/prebuilts/clang/host/linux-x86/clang-r450784e/bin
 export PATH=${ANDROID_BUILD_TOP}/${CLANG_DIR}:$PATH
 
 
 # ─────────────────────────────────────────
-# 5. FIX GLIBC 2.39 — glibc_compat.o
+# 4. FIX GLIBC 2.39 — glibc_compat.o
 # ─────────────────────────────────────────
 FIX_DIR=${ANDROID_BUILD_TOP}/fix
 mkdir -p "${FIX_DIR}"
@@ -140,7 +135,7 @@ EOFC
 fi
 
 # ─────────────────────────────────────────
-# 6. FIX GLIBC 2.39 — wrapper ld.lld
+# 5. FIX GLIBC 2.39 — wrapper ld.lld
 # ─────────────────────────────────────────
 if [ ! -f "${ANDROID_BUILD_TOP}/${CLANG_DIR}/ld.lld.real" ]; then
   echo "[fix] Installation wrapper ld.lld..."
@@ -164,13 +159,13 @@ echo "[fix] Wrapper ld.lld installé ✅"
 
 
 # ─────────────────────────────────────────
-# 7. NETTOYAGE resolve_btfids (cache cassé)
+# 6. NETTOYAGE resolve_btfids (cache cassé)
 # ─────────────────────────────────────────
 rm -rf ${OUT_DIR}/gki_kernel/common/tools/bpf/resolve_btfids
 rm -rf ${OUT_DIR}/msm-kernel/tools/bpf/resolve_btfids
 
 # ─────────────────────────────────────────
-# 8. LANCEMENT DU BUILD
+# 7. LANCEMENT DU BUILD
 # ─────────────────────────────────────────
 echo ""
 echo "========================================="
@@ -180,6 +175,7 @@ echo "========================================="
 ( env ${GKI_KERNEL_BUILD_OPTIONS} ${ANDROID_BUILD_TOP}/kernel_platform/build/android/prepare_vendor.sh sec ${TARGET_PRODUCT} || exit 1) 2>&1 | tee build_log.log
 
 # Affiche le nom du kernel compilé
+printf "\n\n\n"
 strings ${DIST_DIR}/Image | grep -i "linux version" | head -1
 
 
