@@ -1,1 +1,7 @@
 kernel_platform/prebuilts/
+build_log.log
+exports.txt
+glibc_compat.c
+glibc_compat.o
+device/
+out/
