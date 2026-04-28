@@ -4,6 +4,7 @@
 # Build script — Samsung Galaxy S23+ SM-S916B (dm2q / kalama)
 ################################################################################
 
+
 # ─────────────────────────────────────────
 # 1. RÉPERTOIRE RACINE
 # ─────────────────────────────────────────
@@ -36,6 +37,10 @@ export DIST_DIR=${ANDROID_BUILD_TOP}/out/msm-kernel-${CHIPSET_NAME}-${TARGET_PRO
 export MERGE_CONFIG="${ANDROID_BUILD_TOP}/kernel_platform/common/scripts/kconfig/merge_config.sh"
 
 mkdir -p "${DIST_DIR}"
+
+# Nettoyage de l'ancienne CONFIG GKI
+rm -f ${OUT_DIR}/gki_kernel/common/.config
+
 
 # ─────────────────────────────────────────
 # 3. MODULES VENDOR — symboles et chemins
