@@ -37,6 +37,10 @@ export MERGE_CONFIG="${ANDROID_BUILD_TOP}/kernel_platform/common/scripts/kconfig
 
 mkdir -p "${DIST_DIR}"
 
+#3. Cleaning previous compilation CONFIG
+rm -f ${OUT_DIR}/gki_kernel/common/.config
+
+
 # ─────────────────────────────────────────
 # 3. MODULES VENDOR — symboles et chemins
 # ─────────────────────────────────────────
