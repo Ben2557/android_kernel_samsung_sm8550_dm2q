@@ -37,8 +37,8 @@ export MERGE_CONFIG="${ANDROID_BUILD_TOP}/kernel_platform/common/scripts/kconfig
 
 mkdir -p "${DIST_DIR}"
 
-#3. Cleaning previous compilation CONFIG
-rm -f ${OUT_DIR}/gki_kernel/common/.config
+#3. Cleaning previous kernel compilation
+rm -rf ${OUT_DIR}/gki_kernel/dist
 
 
 # ─────────────────────────────────────────
@@ -186,6 +186,6 @@ strings ${DIST_DIR}/Image | grep -i "linux version" | head -1
 #   Image.gz        → AnyKernel3 — kernel principal
 #
 # Clean :
-#   rm -rf out/msm-kernel-kalama-gki/
+#   rm -rf ${OUT_DIR}/
 ################################################################################
 
