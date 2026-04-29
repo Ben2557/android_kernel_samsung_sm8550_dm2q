@@ -109,6 +109,15 @@ export MKBOOTIMG_EXTRA_ARGS="
     --pagesize 4096"
 
 
+# Import Samsung toolchain
+TOOLCHAIN_URL="https://github.com/Ben2557/samsung_sm8550_toolchain/releases/download/toolchain/toolchain.tar.xz"
+TOOLCHAIN_FILE=$(basename "$TOOLCHAIN_URL")
+if [ ! -d "kernel_platform/prebuilts" ]; then
+    wget -q --show-progress --progress=dot:giga -O "$TOOLCHAIN_FILE" "$TOOLCHAIN_URL"
+fi
+tar -xf "$TOOLCHAIN_FILE" -C kernel_platform --strip-components=1 toolchain/prebuilts && rm "$TOOLCHAIN_FILE"
+
+
 # ─────────────────────────────────────────
 # 3. TOOLCHAIN DANS LE PATH
 # ─────────────────────────────────────────
