@@ -179,8 +179,16 @@ echo "========================================="
 printf "\n\n\n"
 strings ${DIST_DIR}/Image | grep -i "linux version" | head -1
 
+
+# Déplace le kernel fraîchement compilé
+mkdir ${ANDROID_BUILD_TOP}/out/built_kernel
+mv ${DIST_DIR}/boot.img ${ANDROID_BUILD_TOP}/out/built_kernel/boot.img
+mv ${DIST_DIR}/Image* ${ANDROID_BUILD_TOP}/out/built_kernel/
+
 # Compresse en format Odin (AP)
-tar -cvf ${MODEL}_KernelSU-Next-v3.2.0.tar ${DIST_DIR}/boot.img
+cd ${ANDROID_BUILD_TOP}/out/built_kernel/
+tar -cvf ${MODEL}_Odin.tar boot.img
+cd ${ANDROID_BUILD_TOP}
 
 ################################################################################
 # Output files :
