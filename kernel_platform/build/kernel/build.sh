@@ -703,7 +703,13 @@ fi
 echo "========================================================"
 echo " Merging custom defconfig with .config"
 (cd ${OUT_DIR} && ${MERGE_CONFIG} -m .config ${ANDROID_BUILD_TOP}/custom_defconfigs/custom_defconfig)
-(cd ${OUT_DIR} && make O=${OUT_DIR} "${tool_args[@]}" olddefconfig)
+(cd ${OUT_DIR} && make O=${OUT_DIR} ${TOOL_ARGS} olddefconfig)
+
+# Menuconfig for GKI kernel (/common), skip Samsung modules (/msm-kernel)
+if [ "${OPEN_MENUCONFIG}" = "1" ] && [[ "${OUT_DIR}" == *"common"* ]]; then
+    script -q -c "cd ${OUT_DIR} && ARCH=arm64 make O=${OUT_DIR} menuconfig" /dev/null
+    (cd ${OUT_DIR} && make O=${OUT_DIR} ${TOOL_ARGS} olddefconfig)
+fi
 
 
 if [ "${LTO}" = "none" -o "${LTO}" = "thin" -o "${LTO}" = "full" ]; then

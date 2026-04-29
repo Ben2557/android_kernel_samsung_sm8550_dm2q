@@ -1,8 +1,25 @@
 #!/bin/bash
 
-################################################################################
-# Build script — Samsung Galaxy S23+ SM-S916B (dm2q / kalama)
-################################################################################
+echo "##############################################################################"
+echo "# Build script — Samsung Galaxy S23+ SM-S916B (dm2q / kalama)"
+echo "##############################################################################"
+
+# ─────────────────────────────────────────
+# 0. OPTIONS DE BUILD
+# ─────────────────────────────────────────
+
+export OPEN_MENUCONFIG
+
+echo ""
+while true; do
+    read -p " Customise kernel compilation with the GUI menuconfig ? [y/N] (default: N) : " MENUCONFIG_CHOICE
+    case ${MENUCONFIG_CHOICE} in
+        y|Y|yes|YES) OPEN_MENUCONFIG=1; break ;;
+        n|N|no|NO)   OPEN_MENUCONFIG=0; break ;;
+        "")          OPEN_MENUCONFIG=0; break ;;
+        *)           echo " Invalid response - choose 'y' or 'n' (or Enter for 'n')" ;;
+    esac
+done
 
 
 # ─────────────────────────────────────────
@@ -67,21 +84,21 @@ export KBUILD_EXT_MODULES="\
 
 # Build Setting
 export GKI_KERNEL_BUILD_OPTIONS="
-    SKIP_MRPROPER=1 \
-    LTO=thin \
-    HERMETIC_TOOLCHAIN=0 \
-    KMI_SYMBOL_LIST_STRICT_MODE=0 \
-    RECOMPILE_KERNEL=1 \
-    ABI_DEFINITION= \
-    BUILD_BOOT_IMG=1 \
-    SKIP_VENDOR_BOOT=1 \
-    MKBOOTIMG_PATH=${ANDROID_BUILD_TOP}/kernel_platform/tools/mkbootimg/mkbootimg.py \
-    KERNEL_BINARY=Image \
-    BOOT_IMAGE_HEADER_VERSION=4 \
-    AVB_SIGN_BOOT_IMG=1 \
-    AVB_BOOT_PARTITION_SIZE=100663296 \
-    AVB_BOOT_KEY=${ANDROID_BUILD_TOP}/kernel_platform/tools/mkbootimg/gki/testdata/testkey_rsa4096.pem \
-    AVB_BOOT_ALGORITHM=SHA256_RSA4096 \
+    SKIP_MRPROPER=1
+    LTO=thin
+    HERMETIC_TOOLCHAIN=0
+    KMI_SYMBOL_LIST_STRICT_MODE=0
+    RECOMPILE_KERNEL=1
+    ABI_DEFINITION=
+    BUILD_BOOT_IMG=1
+    SKIP_VENDOR_BOOT=1
+    MKBOOTIMG_PATH=${ANDROID_BUILD_TOP}/kernel_platform/tools/mkbootimg/mkbootimg.py
+    KERNEL_BINARY=Image
+    BOOT_IMAGE_HEADER_VERSION=4
+    AVB_SIGN_BOOT_IMG=1
+    AVB_BOOT_PARTITION_SIZE=100663296
+    AVB_BOOT_KEY=${ANDROID_BUILD_TOP}/kernel_platform/tools/mkbootimg/gki/testdata/testkey_rsa4096.pem
+    AVB_BOOT_ALGORITHM=SHA256_RSA4096
     AVB_BOOT_PARTITION_NAME=boot"
 
 # SKIP_MRPROPER=1              → pas de clean complet, rebuild incrémental plus rapide
@@ -113,9 +130,15 @@ export MKBOOTIMG_EXTRA_ARGS="
 TOOLCHAIN_URL="https://github.com/Ben2557/samsung_sm8550_toolchain/releases/download/toolchain/toolchain.tar.xz"
 TOOLCHAIN_FILE=$(basename "$TOOLCHAIN_URL")
 if [ ! -d "kernel_platform/prebuilts" ]; then
+echo "##############################################################################"
+echo "#		DOWNLOADING SAMUNG TOOLCHAIN..."
+echo "##############################################################################"
     wget -q --show-progress --progress=dot:giga -O "$TOOLCHAIN_FILE" "$TOOLCHAIN_URL"
+echo "##############################################################################"
+echo "#		EXTRACTING SAMSUNG TOOLCHAIN..."
+echo "##############################################################################"
+    tar -xf "$TOOLCHAIN_FILE" -C kernel_platform --strip-components=1 toolchain/prebuilts && rm "$TOOLCHAIN_FILE"
 fi
-tar -xf "$TOOLCHAIN_FILE" -C kernel_platform --strip-components=1 toolchain/prebuilts && rm "$TOOLCHAIN_FILE"
 
 
 # ─────────────────────────────────────────
@@ -179,32 +202,38 @@ rm -rf ${OUT_DIR}/msm-kernel/tools/bpf/resolve_btfids
 # ─────────────────────────────────────────
 echo ""
 echo "========================================="
-echo " Démarrage build kernel SM-S916B (dm2q)"
+echo " Starting to build GKI kernel"
 echo "========================================="
 
 ( env ${GKI_KERNEL_BUILD_OPTIONS} ${ANDROID_BUILD_TOP}/kernel_platform/build/android/prepare_vendor.sh sec ${TARGET_PRODUCT} || exit 1) 2>&1 | tee build_log.log
 
+
 # Affiche le nom du kernel compilé
 printf "\n\n\n"
+echo "##############################################################################"
+echo "# Compiled kernel informations :"
+echo ""
 strings ${DIST_DIR}/Image | grep -i "linux version" | head -1
-
+echo ""
 
 # Déplace le kernel fraîchement compilé
-mkdir ${ANDROID_BUILD_TOP}/out/built_kernel
+mkdir -p ${ANDROID_BUILD_TOP}/out/built_kernel
 mv ${DIST_DIR}/boot.img ${ANDROID_BUILD_TOP}/out/built_kernel/boot.img
 mv ${DIST_DIR}/Image* ${ANDROID_BUILD_TOP}/out/built_kernel/
 
 # Compresse en format Odin (AP)
-cd ${ANDROID_BUILD_TOP}/out/built_kernel/
-tar -cvf ${MODEL}_Odin.tar boot.img
-cd ${ANDROID_BUILD_TOP}
+(cd ${ANDROID_BUILD_TOP}/out/built_kernel/
+tar -cf ${MODEL}_Odin.tar boot.img)
 
-################################################################################
-# Output files :
-#   boot.img        → Odin (AP) — kernel principal
-#   Image.gz        → AnyKernel3 — kernel principal
-#
-# Deep Clean :
-#   rm -rf ${OUT_DIR}/
-################################################################################
+echo "#"
+echo "# Output files :"
+echo "#   boot.img        → Odin (AP) — main kernel"
+echo "#   Image.gz        → AnyKernel3 — main kernel"
+echo "#"
+echo "# Output folder :"
+echo "#   ${ANDROID_BUILD_TOP}/out/built_kernel/"
+echo "#"
+echo "# Deep Clean :"
+echo "#   Delete ${OUT_DIR}/ & /device directories"
+echo "##############################################################################"
 
