@@ -1,167 +1,176 @@
-# Custom GKI Kernel for Samsung Galaxy S23+ (SM-S916B)
+# ROOT-LKM — Custom GKI Kernel for Samsung Galaxy S23+ (SM-S916B)
 
-![Kernel Version](https://img.shields.io/badge/Kernel-5.15.78-blue.svg)
-![Architecture](https://img.shields.io/badge/Arch-arm64--v8a-orange.svg)
-![Android](https://img.shields.io/badge/Android-13-green.svg)
-![Status](https://img.shields.io/badge/Status-Stable-brightgreen.svg)
+![Kernel](https://img.shields.io/badge/Kernel-5.15.78-blue)
+![Android](https://img.shields.io/badge/Android-13-green)
+![Device](https://img.shields.io/badge/Device-dm2q-orange)
+![Root](https://img.shields.io/badge/Root-not_included-lightgrey)
 
-This repository contains the source code and build scripts for the **Samsung Galaxy S23+ (Kalama)** kernel. It is based on official Samsung open-source releases, optimized for GKI (Generic Kernel Image) compliance, and features a streamlined build process.
+Custom **GKI 2.0 (Linux 5.15.78)** kernel and build scripts for the **Samsung Galaxy S23+ (SM-S916B/DS, dm2q, Qualcomm SM8550 / Kalama)**, based on Samsung firmware **S916BXXS3AWIF** (Android 13 / One UI 5.1).
 
-## 🚀 Key Features
+The `ROOT-LKM` branch provides a **root-manager-independent kernel base**. **KernelSU Next is not built into the kernel**, and no root manager is shipped with it. Compatible loadable-kernel-module (LKM) root solutions can be installed separately, subject to compatibility with the specific kernel and firmware.
 
-* **Downstream Base:** GKI v5.15.78.
-* **Fastbootd Support:** Enabled out-of-the-box to allow flashing logical partitions without Odin.
-* **Smart Build System:** * Automatic merging of `custom_defconfig` during the build process.
-    * Conditional `menuconfig` execution (targeted specifically at the GKI/Common tree).
-    * Automated Odin-ready `.tar` package generation.
-* **Toolchain:** Compiled using official Android Clang 14.0.7 for maximum stability.
-
----
+> **Compatibility:** Intended for the stated firmware base. Other Android versions, bootloader revisions and vendor module combinations are not guaranteed to work. An unlocked bootloader is required to flash custom boot images.
 
 ## Features
 
-- ✅ **KernelSU-Next** — kernel-level root management
-- ✅ **LTO thin** — link-time optimization
-- ✅ **Custom defconfig** — merged on top of Samsung base config
-- ✅ **Interactive menuconfig** — optional GUI configuration at build time
-- ✅ **GLIBC 2.39 compatibility fixes** — for modern Linux hosts
+- **No built-in KernelSU Next:** the previous `CONFIG_KSU=y` integration and its source wiring have been removed.
+- **Loadable kernel module support:** `CONFIG_MODULES=y` in the custom configuration, subject to verification in the generated `.config`.
+- **Adjusted Samsung kernel security configuration:** UH, RKP, KDP, DEFEX, PROCA and FIVE disabled where these options exist and the build accepts the overrides.
+- **Thin LTO** build setting.
+- **Custom defconfig merge**, optional interactive `menuconfig` and Odin TAR generation.
+- **GLIBC 2.39 compatibility workarounds** for the bundled toolchain on newer Linux hosts.
 
----
+**Security note:** Disabling Samsung kernel security protections reduces device security. It does **not** bypass every device-level security mechanism or guarantee compatibility with every root manager.
+
+## Branches and releases
+
+| Branch | Description |
+|---|---|
+| [`ROOT-LKM`](https://github.com/Ben2557/android_kernel_samsung_sm8550_dm2q/tree/ROOT-LKM) | Root-independent kernel; prepared for compatible LKM solutions |
+| [`KernelSU-Next`](https://github.com/Ben2557/android_kernel_samsung_sm8550_dm2q/tree/KernelSU-Next) | Legacy builds with KernelSU Next integrated into the kernel |
+| [`stock`](https://github.com/Ben2557/android_kernel_samsung_sm8550_dm2q/tree/stock) | Samsung stock-based sources |
+
+**Downloads:** [All releases](https://github.com/Ben2557/android_kernel_samsung_sm8550_dm2q/releases) · [Stock-LKM release](https://github.com/Ben2557/android_kernel_samsung_sm8550_dm2q/releases/tag/Stock-LKM)
 
 ## Requirements
 
-### Host system
-- Ubuntu 22.04+ (or equivalent)
-- GCC, Python 3
-- `libncurses-dev` (for menuconfig)
+- Ubuntu 22.04+ (or compatible Linux distribution)
+- GCC, Make, Python 3 and standard Android kernel build dependencies
+- `libncurses-dev` and `ncurses-bin` for optional `menuconfig`
+- Sufficient RAM and disk space for the Samsung/Qualcomm kernel build
 
 ```bash
-sudo apt install gcc python3 libncurses-dev ncurses-bin
+sudo apt update
+sudo apt install gcc make python3 libncurses-dev ncurses-bin
 ```
 
-### Source tree structure
+The build script downloads the project toolchain when `kernel_platform/prebuilts` is missing.
 
-```
+## Source tree
+
+```text
 5.15.78/
 ├── kernel_platform/
-│   ├── common/              ← GKI kernel (KernelSU-Next here)
-│   ├── msm-kernel/          ← Samsung Qualcomm kernel
-│   ├── prebuilts/           ← Clang toolchain
+│   ├── common/                  # GKI kernel (without built-in KSUN)
+│   ├── msm-kernel/              # Samsung / Qualcomm kernel sources
+│   ├── prebuilts/               # Toolchain (downloaded as needed)
 │   └── build/
-├── vendor/qcom/opensource/  ← Qualcomm open-source modules
+├── vendor/qcom/opensource/      # Qualcomm external kernel modules
 ├── custom_defconfigs/
-│   └── custom_defconfig     ← Your custom kernel config
-├── fix/                     ← GLIBC 2.39 compatibility files (auto-generated)
-├── out/                     ← Build output (auto-generated)
-└── custom_build_kernel_GKI.sh                 ← Main build script
+│   └── custom_defconfig        # Custom kernel configuration overrides
+├── fix/                         # Generated host compatibility files
+├── out/                         # Generated build artifacts
+└── custom_build_kernel_GKI.sh   # Main build script
 ```
 
----
+## Build instructions
 
-## Build
-
-### First build
+From the repository root:
 
 ```bash
 chmod +x custom_build_kernel_GKI.sh
 ./custom_build_kernel_GKI.sh
 ```
 
-The script will ask if you want to open **menuconfig** before compiling:
-```
+The script asks:
+
+```text
 Customise kernel compilation with the GUI menuconfig ? [y/N] :
 ```
 
-- Press **Enter** or type `n` → build with default config
-- Type `y` → opens interactive menuconfig before compiling
+- Press **Enter** or `n` to use the project configuration.
+- Press `y` to open interactive `menuconfig`.
 
----
-
-### Incremental rebuild
-
-Simply re-run the script — only modified files will be recompiled.
-The build script automatically cleans the previous GKI kernel output (`gki_kernel/dist`)
-before each compilation to ensure a fresh kernel image is always produced.
-
-```bash
-./custom_build_kernel_GKI.sh
-```
-
----
-
-### Deep clean
-
-Required after switching branches or modifying defconfig significantly:
+To rebuild, rerun the same script. After a major branch or configuration change, you can clean the generated build directory:
 
 ```bash
 rm -rf out/msm-kernel-kalama-gki/
 ```
 
----
+Run that command only from the correct repository root, after confirming the directory holds disposable build output.
 
-## Output files
+### Output files
 
-After a successful build, files are located in:
+After a successful build:
 
-```
+```text
 out/built_kernel/
-├── boot.img          → Flash via Odin (AP slot)
-├── Image.gz          → Raw kernel binary (AnyKernel3)
-└── dm2q_Odin.tar     → Ready-to-flash Odin archive
+├── boot.img          # Boot image for the target firmware
+├── Image / Image.gz  # Kernel image(s), depending on build output
+└── dm2q_Odin.tar     # Odin AP-flashable archive
 ```
 
-### Flashing
+Release downloads may also contain an **AnyKernel3 ZIP**, which is packaged separately from the main build script.
 
-| File | Tool | Slot |
-|---|---|---|
-| `Odin_dm2q_5.15.78-KSUN-vx.x.x.tar` | Odin | AP slot |
-| `boot.img` | Custom Recovery | Flash image > boot |
+## Flashing the kernel
 
-> ⚠️ Do **not** flash `vendor_boot.img` or `dtbo.img`
+| File | Installation method |
+|---|---|
+| `Odin_*.tar` or generated `dm2q_Odin.tar` | Download Mode → Odin → **AP** |
+| `AK3_*.zip` | Compatible custom recovery |
+| `AK3_*.zip` | `adb sideload <zip_file_path>` in a compatible recovery |
+| `boot.img` | Flash to **boot** using a recovery or imaging tool that supports raw images |
 
----
+**Notes:**
 
-## KernelSU-Next
+- A raw `.img` cannot be installed directly with `adb sideload`.
+- Samsung stock recovery generally rejects unsigned custom ZIP packages.
+- Back up the working boot image and confirm firmware compatibility before flashing.
+- Do not replace `vendor_boot.img` or `dtbo.img` unless matching images are explicitly required.
+- Do not relock the bootloader while custom boot images are installed.
 
-After flashing `boot.img`, install the KernelSU-Next Manager APK from:
+## Installing root separately (LKM)
 
-👉 https://github.com/KernelSU-Next/KernelSU-Next/releases
+**The ROOT-LKM kernel does not provide root access by itself.** To use a supported LKM-based root solution:
 
----
+1. Flash and successfully boot the custom kernel.
+2. Confirm that the chosen root implementation supports your kernel's ABI/KMI, exported symbols and module-loading configuration.
+3. Use the root manager's supported installation method to patch the **appropriate boot ramdisk image**. On devices with `init_boot`, this may be `init_boot.img`, rather than `boot.img`.
+4. Flash the patched image with a Samsung-compatible method.
+5. Reboot and verify that the root module loads correctly.
+
+KernelSU Next releases: https://github.com/KernelSU-Next/KernelSU-Next/releases
+
+`CONFIG_MODULES=y` **does not guarantee universal LKM compatibility**. Module signing, `vermagic`, symbol versioning and Samsung-specific restrictions still apply. Not every root manager is LKM-based.
 
 ## Custom defconfig
 
-Add your kernel config options in:
+The main build script merges `custom_defconfigs/custom_defconfig` with Samsung's base configuration. Current intended overrides include:
 
-```
-custom_defconfigs/custom_defconfig
-```
+```ini
+# Samsung kernel security options (where supported)
+CONFIG_UH=n
+CONFIG_RKP=n
+CONFIG_KDP=n
+CONFIG_SECURITY_DEFEX=n
+CONFIG_PROCA=n
+CONFIG_FIVE=n
 
-This file is merged on top of the Samsung base defconfig at each build. Example:
-
-```
-CONFIG_LOCALVERSION="-KSU-Next-vx.x.x_Kernel_SM8550"
+# Build options
+CONFIG_WERROR=n
+CONFIG_LOCALVERSION="-ROOT-LKM-S916BXXS3AWIF"
 CONFIG_LOCALVERSION_AUTO=n
-CONFIG_KSU=y
-CONFIG_KSU_DEBUG=n
+
+# Module support; no built-in root manager
+CONFIG_MODULES=y
+# CONFIG_KSU is not set
 ```
 
+Check the **generated** `.config` after merging. Once KSUN's Kconfig has been removed, `CONFIG_KSU` may no longer exist as a recognized symbol.
+
+**Module compatibility:** Changing `CONFIG_LOCALVERSION` changes the kernel release shown by `uname -r`, which can affect prebuilt Samsung/Qualcomm modules. Check `vermagic`, symbol versions and compatibility with the target firmware.
+
+## Toolchain and GLIBC 2.39 compatibility
+
+The build uses the project's Samsung/Android Clang 14-series toolchain. The main script prepares host compatibility code and an `ld.lld` wrapper to address selected GLIBC 2.39-related linker issues on newer Linux distributions.
+
+## Credits
+
+Special thanks to [@GoRhanHee](https://github.com/GoRhanHee) for help merging custom defconfigs and adjusting Samsung kernel security options.
+
+Thanks to the [KernelSU Next developers](https://github.com/KernelSU-Next/KernelSU-Next) for their work on kernel-level root solutions.
+
 ---
 
-## GLIBC 2.39 Compatibility
+**Disclaimer:** Flashing custom kernels and disabling security protections can cause boot failures, reduced device security or loss of functionality. Proceed only if you understand the risks and have a recovery plan.
 
-The Samsung prebuilt `ld.lld` linker requires symbols absent from GLIBC 2.39+. The build script automatically applies two fixes:
-
-1. Compiles `fix/glibc_compat.o` with the missing symbols
-2. Wraps `ld.lld` to inject the compatibility object when needed
-
-These fixes are **idempotent** — applied only once, then reused on subsequent builds.
-
----
-
-## Branches
-
-| Branch | Description |
-|---|---|
-| `KernelSU-Next` | Main branch — KSU-Next integrated |
-| `stock` | Stock Samsung kernel, no modifications |
